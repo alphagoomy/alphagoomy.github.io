@@ -27,37 +27,93 @@ th{text-align:left;font-size:10px;text-transform:uppercase;color:var(--muted);fo
 td{padding:6px 8px 6px 0;border-top:1px solid var(--line);font-size:13px;color:var(--ink2);white-space:nowrap}
 td a{color:var(--series);text-decoration:none}td a:hover{text-decoration:underline}
 .res{font-weight:600}.res.won{color:var(--win)}.res.lost{color:var(--lose)}
+td b{color:var(--ink);font-weight:600}.ver{font-size:11px;color:var(--muted)}
 .tag{font-size:10px;border:1px solid var(--line);border-radius:4px;padding:0 4px;color:var(--muted)}
 svg{display:block;width:100%;height:auto;overflow:visible}svg text{fill:var(--muted);font-size:10px;font-family:inherit}
 #tip{position:fixed;pointer-events:none;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;
   padding:5px 8px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.15);display:none;z-index:10;font-variant-numeric:tabular-nums}
 .empty{color:var(--muted);padding:14px 0}
+th button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-transform:inherit;letter-spacing:inherit}
+th button:hover,th button.on{color:var(--ink)}
+tr.vrow{cursor:pointer}tr.vrow:hover td{background:var(--hl)}td.num{text-align:right}th.num{text-align:right}
+.back{display:inline-block;margin-bottom:10px;color:var(--series);text-decoration:none;font-size:13px}.back:hover{text-decoration:underline}
+.vhead{margin:0 0 12px}.vhead h2{margin:0;font-size:20px;font-weight:650}.vhead p{margin:2px 0 0;color:var(--ink2);font-size:13px}
+.notes{margin:0;padding-left:18px;color:var(--ink2);font-size:13px}.note{font-size:12px;color:var(--muted);margin:8px 0 0}
 </style></head><body>
 <header><h1>LC Bot Replays</h1><p>Gen 5 Little Cup games played by our self-play neural network bot (public games). Open a game to watch it in Showdown's replay player, with the bot's win chance and move preferences turn by turn.</p></header>
 <main>
+ <div id="ov">
   <div class="tiles" id="tiles"></div>
   <div class="card"><h2>Win rate over time (rolling 25 games)</h2><div id="chart"></div></div>
+  <div class="card"><h2>Live versions</h2>
+    <div class="tablewrap"><table><thead><tr><th>version</th><th>checkpoint</th><th>live from</th><th class="num">games</th><th class="num">won–lost</th>
+    <th class="num">win rate</th><th class="num" title="games played to the end (no forfeit or inactivity loss)">played out</th><th class="num" title="games the opponent forfeited or lost on the inactivity timer">foe quit</th></tr></thead>
+    <tbody id="vrows"></tbody></table></div><p class="note">Click a version for its details.</p>
+  </div>
   <div class="card"><h2>Games</h2>
     <div class="filters"><select id="f-bot" aria-label="Bot account"></select><select id="f-res" aria-label="Result">
-      <option value="">all results</option><option value="won">won</option><option value="lost">lost</option></select></div>
-    <div class="tablewrap"><table><thead><tr><th>date</th><th>bot</th><th>opponent</th><th>result</th><th>turns</th><th>version</th><th></th></tr></thead>
+      <option value="">all results</option><option value="won">won</option><option value="lost">lost</option></select><select id="f-ver" aria-label="Version"></select></div>
+    <div class="tablewrap"><table><thead><tr><th><button data-sort="date">date</button></th><th>bot</th><th>opponent</th><th>result</th><th>turns</th><th><button data-sort="version">version</button></th><th></th></tr></thead>
     <tbody id="rows"></tbody></table></div><div class="empty" id="empty" style="display:none">No games yet.</div>
   </div>
+ </div>
+ <div id="vd" style="display:none"></div>
 </main>
 <div id="tip"></div>
 <script>
-var GAMES = [{"room": "battle-gen5lc-2710931051", "me": "AlphaGoomyZero", "foe": "freezai", "result": "won", "turns": 29, "public": true, "server": "public", "mtime": 1794153024.0, "policy": ""}, {"room": "battle-gen5lc-2710953351", "me": "AlphaGoomyZero", "foe": "freezai", "result": "lost", "turns": 27, "public": true, "server": "public", "mtime": 1794153024.0, "policy": ""}, {"room": "battle-gen5lc-2710954133", "me": "AlphaGoomyZero", "foe": "freezai", "result": "won", "turns": 28, "public": true, "server": "public", "mtime": 1794153024.0, "policy": ""}];
+var GAMES = [{"room": "battle-gen5lc-2710954133", "me": "AlphaGoomyZero", "foe": "freezai", "result": "won", "turns": 28, "public": true, "server": "public", "mtime": 1794151148.029788, "policy": "", "version": "v1", "vnum": 1, "vdesc": "lc_gen5 13800 (assumed)", "team": "Diglett / Mienfoo / Natu / Porygon / Snover / Vullaby", "ending": "played", "quitter": "", "foe_left": null}, {"room": "battle-gen5lc-2710953351", "me": "AlphaGoomyZero", "foe": "freezai", "result": "lost", "turns": 27, "public": true, "server": "public", "mtime": 1794151033.6526735, "policy": "", "version": "v1", "vnum": 1, "vdesc": "lc_gen5 13800 (assumed)", "team": "Clamperl / Diglett / Gastly / Mienfoo / Natu / Porygon", "ending": "played", "quitter": "", "foe_left": null}, {"room": "battle-gen5lc-2710931051", "me": "AlphaGoomyZero", "foe": "freezai", "result": "won", "turns": 29, "public": true, "server": "public", "mtime": 1794146566.509313, "policy": "", "version": "v1", "vnum": 1, "vdesc": "lc_gen5 13800 (assumed)", "team": "Diglett / Ferroseed / Gastly / Hippopotas / Mienfoo / Staryu", "ending": "played", "quitter": "", "foe_left": null}];
+var VERS = [{"label": "v1", "version": 1, "checkpoint": "lc_gen5 13800 (assumed)", "live_from": "2026-11-07T01:18:45Z", "live_until": "2026-11-08T22:00:00Z", "pending": false, "notes": ["checkpoint assumed: these 7 games were logged before the bot wrote a '#bot policy:' line"], "games": 3, "won": 2, "lost": 1, "tie": 0, "played": {"games": 3, "won": 2, "lost": 1, "tie": 0}, "foe_quit": 0, "bot_quit": 0, "by_foe": [{"key": "freezai", "games": 3, "won": 2, "lost": 1, "tie": 0}], "by_team": [{"key": "Diglett / Ferroseed / Gastly / Hippopotas / Mienfoo / Staryu", "games": 1, "won": 1, "lost": 0, "tie": 0}, {"key": "Diglett / Mienfoo / Natu / Porygon / Snover / Vullaby", "games": 1, "won": 1, "lost": 0, "tie": 0}, {"key": "Clamperl / Diglett / Gastly / Mienfoo / Natu / Porygon", "games": 1, "won": 0, "lost": 1, "tie": 0}]}, {"label": "v2", "version": 2, "checkpoint": "focus_14750", "live_from": "2026-11-08T22:00:00Z", "live_until": "2026-11-09T21:29:39Z", "pending": false, "notes": [], "games": 0, "won": 0, "lost": 0, "tie": 0, "played": {"games": 0, "won": 0, "lost": 0, "tie": 0}, "foe_quit": 0, "bot_quit": 0, "by_foe": [], "by_team": []}, {"label": "v3", "version": 3, "checkpoint": "arm D 1000", "live_from": "2026-11-09T21:29:39Z", "live_until": "2026-11-10T22:48:51Z", "pending": false, "notes": ["2026-11-10T03:43Z settings: close-call mixing + opponent memory added (no new checkpoint)"], "games": 0, "won": 0, "lost": 0, "tie": 0, "played": {"games": 0, "won": 0, "lost": 0, "tie": 0}, "foe_quit": 0, "bot_quit": 0, "by_foe": [], "by_team": []}, {"label": "v4", "version": 4, "checkpoint": "arm e 5500", "live_from": "2026-11-10T22:48:51Z", "live_until": "2026-11-11T03:54:03Z", "pending": false, "notes": [], "games": 0, "won": 0, "lost": 0, "tie": 0, "played": {"games": 0, "won": 0, "lost": 0, "tie": 0}, "foe_quit": 0, "bot_quit": 0, "by_foe": [], "by_team": []}, {"label": "v5", "version": 5, "checkpoint": "arm e 8225", "live_from": "2026-11-11T03:54:03Z", "live_until": "2026-11-11T08:08:14Z", "pending": false, "notes": ["2026-11-11T05:19Z settings: value-based lead selection added (no new checkpoint)"], "games": 0, "won": 0, "lost": 0, "tie": 0, "played": {"games": 0, "won": 0, "lost": 0, "tie": 0}, "foe_quit": 0, "bot_quit": 0, "by_foe": [], "by_team": []}, {"label": "v6", "version": 6, "checkpoint": "arm e 9075", "live_from": "2026-11-11T08:08:14Z", "live_until": "2026-11-11T10:17:24Z", "pending": false, "notes": [], "games": 0, "won": 0, "lost": 0, "tie": 0, "played": {"games": 0, "won": 0, "lost": 0, "tie": 0}, "foe_quit": 0, "bot_quit": 0, "by_foe": [], "by_team": []}, {"label": "v7", "version": 7, "checkpoint": "arm e 9550", "live_from": "2026-11-11T10:17:24Z", "live_until": "2026-11-11T14:33:33Z", "pending": false, "notes": ["11-11 10:59 UTC: glhf/gg greeting enabled (bot restarted with the same checkpoint; the box log's 'switching to' line at 10:59:33 is not a new version)"], "games": 0, "won": 0, "lost": 0, "tie": 0, "played": {"games": 0, "won": 0, "lost": 0, "tie": 0}, "foe_quit": 0, "bot_quit": 0, "by_foe": [], "by_team": []}, {"label": "v8", "version": 8, "checkpoint": "arm e 10475", "live_from": "2026-11-11T14:33:33Z", "live_until": null, "pending": false, "notes": ["Team pool changed to 9 teams (teams/gen5lc_live_v8.json): hub_06, hub_08 and 7 tournament teams chosen by self-play ranking; dropped cb316d7e634f, 3b7855390ca3, 34158c75a651."], "games": 0, "won": 0, "lost": 0, "tie": 0, "played": {"games": 0, "won": 0, "lost": 0, "tie": 0}, "foe_quit": 0, "bot_quit": 0, "by_foe": [], "by_team": []}];
 (function () {
   var NS = 'http://www.w3.org/2000/svg';
   function el(n, a, p) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); }
-  var fBot = document.getElementById('f-bot'), fRes = document.getElementById('f-res');
+  var fBot = document.getElementById('f-bot'), fRes = document.getElementById('f-res'), fVer = document.getElementById('f-ver');
   var bots = []; GAMES.forEach(function (g) { if (bots.indexOf(g.me) < 0) bots.push(g.me); });
   fBot.innerHTML = '<option value="">all bots</option>' + bots.map(function (b) { return '<option>' + esc(b) + '</option>'; }).join('');
   try { var saved = localStorage.getItem('lc-bot'); if (saved && bots.indexOf(saved) >= 0) fBot.value = saved; } catch (e) {}
+  var NOVER = '-';  // filter value for games that belong to no live version
+  fVer.innerHTML = '<option value="">all versions</option>' + VERS.slice().reverse().map(function (v) {
+    return v.label ? '<option value="' + esc(v.label) + '">' + esc(v.label + ' · ' + v.checkpoint) + '</option>' : '';
+  }).join('') + (VERS.some(function (v) { return !v.label; }) ? '<option value="' + NOVER + '">no live version</option>' : '');
+  var sort = {key: 'date', dir: -1};  // version sort: by version number, newest game first within a version
+  function pct(w, n) { return n ? Math.round(100 * w / n) + '%' : '–'; }
+  function wl(t) { return t.won + '–' + t.lost + (t.tie ? '–' + t.tie : ''); }
+  function when(t) { var d = new Date(t * 1000); return d.toLocaleDateString(undefined, {month: 'short', day: 'numeric'}) + ' ' + d.toLocaleTimeString(undefined, {hour: '2-digit', minute: '2-digit'}); }
+  function isoWhen(s) { return s ? when(Date.parse(s) / 1000) : '–'; }
+  function verCell(g) {  // live versions (v1, v2, ...) with their checkpoint; other games keep the build name
+    if (!g.version) return esc(g.policy || '–');
+    return '<a href="#' + esc(g.version) + '" title="' + esc(g.vdesc) + ' — version details"><b>' + esc(g.version) + '</b></a> <span class="ver">· ' + esc(g.vdesc) + '</span>';
+  }
+  function endTag(g) {  // forfeits and inactivity losses, so they are not mistaken for played-out games
+    if (!g.quitter) return '';
+    var who = g.quitter === 'foe' ? 'foe' : 'bot', how = g.ending === 'timeout' ? 'timed out' : 'forfeited';
+    return ' <span class="tag" title="ended by ' + g.ending + '">' + who + ' ' + how + (g.quitter === 'foe' && g.foe_left != null ? ', ' + g.foe_left + ' left' : '') + '</span>';
+  }
+  function rowHtml(g) {
+    return '<tr><td>' + when(g.mtime) + '</td><td>' + esc(g.me) + '</td><td>' + esc(g.foe) +
+      (g.public ? '' : ' <span class="tag">private</span>') + '</td><td class="res ' + g.result + '">' + g.result + endTag(g) + '</td><td>' + g.turns +
+      '</td><td>' + verCell(g) + '</td><td><a href="' + encodeURIComponent(g.room) + '.html">watch ›</a></td></tr>';
+  }
+  function sorted(gs) {
+    if (sort.key !== 'version') return sort.dir < 0 ? gs : gs.slice().reverse();  // GAMES is newest first
+    return gs.slice().sort(function (a, b) {
+      if (!a.vnum !== !b.vnum) return a.vnum ? -1 : 1;  // games without a version always last
+      return (a.vnum - b.vnum) * sort.dir || b.mtime - a.mtime;
+    });
+  }
+  function verMatch(g) { return !fVer.value || (fVer.value === NOVER ? !g.version : g.version === fVer.value); }
+  function renderVersions() {
+    var newestFirst = VERS.filter(function (v) { return v.label; }).reverse().concat(VERS.filter(function (v) { return !v.label; }));
+    document.getElementById('vrows').innerHTML = newestFirst.map(function (v) {
+      var open = v.label ? ' class="vrow" data-v="' + esc(v.label) + '"' : '';
+      return '<tr' + open + '><td>' + (v.label ? '<a href="#' + esc(v.label) + '"><b>' + esc(v.label) + '</b></a>' : '<b>–</b>') + '</td><td>' + esc(v.checkpoint) +
+        (v.pending ? ' <span class="tag">pending</span>' : '') + '</td><td>' + isoWhen(v.live_from) + '</td><td class="num">' + v.games + '</td><td class="num">' + wl(v) +
+        '</td><td class="num">' + pct(v.won, v.games) + '</td><td class="num">' + wl(v.played) + ' (' + pct(v.played.won, v.played.games) + ')</td><td class="num">' + v.foe_quit + '</td></tr>';
+    }).join('') || '<tr><td colspan="8" class="empty">No versions.</td></tr>';
+  }
   function render() {
     try { localStorage.setItem('lc-bot', fBot.value); } catch (e) {}
-    var gs = GAMES.filter(function (g) { return !fBot.value || g.me === fBot.value; });
+    var gs = GAMES.filter(function (g) { return (!fBot.value || g.me === fBot.value) && verMatch(g); });
     var w = gs.filter(function (g) { return g.result === 'won'; }).length, l = gs.filter(function (g) { return g.result === 'lost'; }).length;
     var n = gs.length, se = n ? Math.sqrt((w / n) * (1 - w / n) / n) : 0;
     document.getElementById('tiles').innerHTML =
@@ -66,15 +122,50 @@ var GAMES = [{"room": "battle-gen5lc-2710931051", "me": "AlphaGoomyZero", "foe":
       '<div class="tile"><b>' + (n ? Math.round(100 * w / n) + '%' : '–') + '</b><span>win rate' + (n ? ' ± ' + Math.round(100 * se) : '') + '</span></div>' +
       '<div class="tile"><b>' + (n ? Math.round(gs.reduce(function (s, g) { return s + g.turns; }, 0) / n) : '–') + '</b><span>avg turns</span></div>';
     chart(gs.slice().reverse());
-    var rows = gs.filter(function (g) { return !fRes.value || g.result === fRes.value; });
+    var rows = sorted(gs.filter(function (g) { return !fRes.value || g.result === fRes.value; }));
     document.getElementById('empty').style.display = rows.length ? 'none' : 'block';
-    document.getElementById('rows').innerHTML = rows.map(function (g) {
-      var d = new Date(g.mtime * 1000);
-      return '<tr><td>' + d.toLocaleDateString(undefined, {month: 'short', day: 'numeric'}) + ' ' +
-        d.toLocaleTimeString(undefined, {hour: '2-digit', minute: '2-digit'}) + '</td><td>' + esc(g.me) + '</td><td>' + esc(g.foe) +
-        (g.public ? '' : ' <span class="tag">private</span>') + '</td><td class="res ' + g.result + '">' + g.result + '</td><td>' + g.turns +
-        '</td><td>' + esc(g.policy || '–') + '</td><td><a href="' + encodeURIComponent(g.room) + '.html">watch ›</a></td></tr>';
-    }).join('');
+    document.getElementById('rows').innerHTML = rows.map(rowHtml).join('');
+    [].forEach.call(document.querySelectorAll('th button[data-sort]'), function (b) {
+      var on = b.getAttribute('data-sort') === sort.key;
+      b.className = on ? 'on' : '';
+      b.textContent = b.getAttribute('data-sort') + (on ? (sort.dir < 0 ? ' ▼' : ' ▲') : '');
+    });
+  }
+  function groupTable(title, head, rows) {
+    return '<div class="card"><h2>' + title + '</h2><div class="tablewrap"><table><thead><tr><th>' + head + '</th><th class="num">games</th><th class="num">won–lost</th><th class="num">win rate</th></tr></thead><tbody>' +
+      (rows.map(function (r) { return '<tr><td>' + esc(r.key) + '</td><td class="num">' + r.games + '</td><td class="num">' + wl(r) + '</td><td class="num">' + pct(r.won, r.games) + '</td></tr>'; }).join('') ||
+       '<tr><td colspan="4" class="empty">No games.</td></tr>') + '</tbody></table></div></div>';
+  }
+  function detail(label) {  // drill-down for one version (#v7)
+    var v = VERS.filter(function (x) { return x.label && x.label === label; })[0];
+    if (!v) return false;
+    var gs = GAMES.filter(function (g) { return g.version === label; });
+    var quit = v.games - v.played.games, foeQuitW = gs.filter(function (g) { return g.quitter === 'foe' && g.result === 'won'; }).length;
+    document.getElementById('vd').innerHTML =
+      '<a class="back" href="#">‹ all games</a>' +
+      '<div class="vhead"><h2>' + esc(v.label) + ' · ' + esc(v.checkpoint) + (v.pending ? ' <span class="tag">pending</span>' : '') + '</h2><p>live ' +
+        (v.live_from ? 'from ' + isoWhen(v.live_from) + (v.live_until ? ' to ' + isoWhen(v.live_until) : ' (current)') : 'time not confirmed yet') + '</p></div>' +
+      '<div class="tiles">' +
+        '<div class="tile"><b>' + v.games + '</b><span>games</span></div>' +
+        '<div class="tile"><b>' + wl(v) + '</b><span>won–lost' + (v.tie ? '–tied' : '') + '</span></div>' +
+        '<div class="tile"><b>' + pct(v.won, v.games) + '</b><span>win rate, all games</span></div>' +
+        '<div class="tile"><b>' + wl(v.played) + ' · ' + pct(v.played.won, v.played.games) + '</b><span>played out (' + v.played.games + ')</span></div>' +
+        '<div class="tile"><b>' + v.foe_quit + (v.bot_quit ? ' / ' + v.bot_quit : '') + '</b><span>foe quit' + (v.bot_quit ? ' / bot quit' : '') + '</span></div>' +
+      '</div>' +
+      '<div class="card"><h2>Notes</h2>' + (v.notes.length ? '<ul class="notes">' + v.notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>' : '<div class="empty">No notes recorded.</div>') +
+        '<p class="note">“Played out” leaves out the ' + quit + ' game' + (quit === 1 ? '' : 's') + ' that ended by a forfeit or inactivity loss (' + foeQuitW + ' won by the opponent quitting).</p></div>' +
+      groupTable('Record per opponent', 'opponent', v.by_foe) + groupTable('Record per bot team', 'team (species from team preview)', v.by_team) +
+      '<div class="card"><h2>Games</h2><div class="tablewrap"><table><thead><tr><th>date</th><th>bot</th><th>opponent</th><th>result</th><th>turns</th><th>version</th><th></th></tr></thead><tbody>' +
+        (gs.map(rowHtml).join('') || '<tr><td colspan="7" class="empty">No games yet.</td></tr>') + '</tbody></table></div></div>';
+    return true;
+  }
+  function route() {
+    var label = decodeURIComponent(location.hash.replace(/^#/, ''));
+    var showDetail = !!label && detail(label);
+    document.getElementById('ov').style.display = showDetail ? 'none' : '';
+    document.getElementById('vd').style.display = showDetail ? '' : 'none';
+    if (showDetail) window.scrollTo(0, 0);
+    document.title = showDetail ? label + ' · LC Bot Replays' : 'LC Bot Replays';
   }
   function chart(gs) {  // oldest first
     var box = document.getElementById('chart'); box.innerHTML = '';
@@ -94,11 +185,12 @@ var GAMES = [{"room": "battle-gen5lc-2710931051", "me": "AlphaGoomyZero", "foe":
     });
     var prevPol = null;
     pts.forEach(function (p) {  // a version change is marked with a vertical rule
-      if (p.g.policy && prevPol && p.g.policy !== prevPol) {
+      var pol = p.g.version || p.g.policy;
+      if (pol && prevPol && pol !== prevPol) {
         el('line', {x1: x(p.i), x2: x(p.i), y1: T, y2: H - B, stroke: 'var(--mid)'}, svg);
-        el('text', {x: x(p.i) + 3, y: T + 9}, svg).textContent = p.g.policy;
+        el('text', {x: x(p.i) + 3, y: T + 9}, svg).textContent = pol;
       }
-      prevPol = p.g.policy || prevPol;
+      prevPol = pol || prevPol;
     });
     el('path', {d: pts.map(function (p, k) { return (k ? 'L' : 'M') + x(p.i).toFixed(1) + ' ' + y(p.w).toFixed(1); }).join(' '),
       fill: 'none', stroke: 'var(--series)', 'stroke-width': 2, 'stroke-linejoin': 'round'}, svg);
@@ -115,8 +207,22 @@ var GAMES = [{"room": "battle-gen5lc-2710931051", "me": "AlphaGoomyZero", "foe":
     hit.addEventListener('mouseleave', function () { tip.style.display = 'none'; dot.setAttribute('opacity', 0); });
     box.appendChild(svg);
   }
-  fBot.addEventListener('change', render); fRes.addEventListener('change', render);
+  fBot.addEventListener('change', render); fRes.addEventListener('change', render); fVer.addEventListener('change', render);
+  [].forEach.call(document.querySelectorAll('th button[data-sort]'), function (b) {
+    b.addEventListener('click', function () {
+      var k = b.getAttribute('data-sort');
+      sort = {key: k, dir: sort.key === k ? -sort.dir : -1};
+      render();
+    });
+  });
+  document.getElementById('vrows').addEventListener('click', function (ev) {
+    var tr = ev.target.closest('tr.vrow');
+    if (tr && !ev.target.closest('a')) location.hash = tr.getAttribute('data-v');
+  });
+  window.addEventListener('hashchange', route);
+  renderVersions();
   render();
+  route();
 })();
 </script>
 </body></html>
